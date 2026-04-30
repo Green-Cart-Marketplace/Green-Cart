@@ -47,6 +47,8 @@ foreach ($service in $services) {
         --target-port (if ($service -eq "notification") { 5005 } else { if ($service -eq "authentication") { 8081 } elseif ($service -eq "inventory") { 8082 } else { 8083 } }) `
         --ingress external `
         --registry-server $acrServer `
+        --registry-username $config.acrName `
+        --registry-password (az acr credential show --name $config.acrName --query "passwords[0].value" -o tsv) `
         --query "properties.configuration.ingress.fqdn" -o tsv
 
     $fqdns[$service] = "https://$app"
@@ -66,6 +68,8 @@ $gatewayApp = az containerapp create `
     --target-port 8080 `
     --ingress external `
     --registry-server $acrServer `
+    --registry-username $config.acrName `
+    --registry-password (az acr credential show --name $config.acrName --query "passwords[0].value" -o tsv) `
     --env-vars `
         "AUTH_SERVICE_URL=$($fqdns['authentication'])" `
         "INVENTORY_SERVICE_URL=$($fqdns['inventory'])" `
@@ -93,6 +97,8 @@ $frontendApp = az containerapp create `
     --target-port 3000 `
     --ingress external `
     --registry-server $acrServer `
+    --registry-username $config.acrName `
+    --registry-password (az acr credential show --name $config.acrName --query "passwords[0].value" -o tsv) `
     --env-vars "NEXT_PUBLIC_API_BASE_URL=$gatewayUrl" `
     --query "properties.configuration.ingress.fqdn" -o tsv
 
