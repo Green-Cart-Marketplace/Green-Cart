@@ -1,0 +1,7 @@
+{
+  "resourceGroup": "greencart-rg",
+  "location": "eastus",
+  "acrName": "greencartregistry",
+  "acaEnvName": "greencart-env",
+  "subscriptionId": "YOUR_SUBSCRIPTION_ID_HERE"
+}

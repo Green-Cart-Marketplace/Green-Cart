@@ -1,0 +1,103 @@
+# Green-Cart Azure Deployment Script
+# This script provisions infrastructure and deploys all microservices to Azure Container Apps.
+
+$config = Get-Content -Raw -Path "$PSScriptRoot/azure-config.json" | ConvertFrom-Json
+
+Write-Host "--- Starting Azure Deployment for Green-Cart ---" -ForegroundColor Cyan
+
+# 1. Login & Set Subscription (Manual step usually, but check if logged in)
+$account = az account show --query "name" -o tsv
+if ($null -eq $account) {
+    Write-Error "Please run 'az login' first."
+    exit
+}
+
+# 2. Provision Core Infrastructure
+Write-Host "Step 1: Provisioning Infrastructure..." -ForegroundColor Yellow
+
+az group create --name $config.resourceGroup --location $config.location
+
+Write-Host "Creating Azure Container Registry: $($config.acrName)..."
+az acr create --resource-group $config.resourceGroup --name $config.acrName --sku Basic --admin-enabled true
+
+$acrServer = az acr show --name $config.acrName --query "loginServer" -o tsv
+az acr login --name $config.acrName
+
+Write-Host "Creating Container Apps Environment: $($config.acaEnvName)..."
+az containerapp env create --name $config.acaEnvName --resource-group $config.resourceGroup --location $config.location
+
+# 3. Deploy Backend Services
+$services = @("authentication", "inventory", "notification", "payment")
+$fqdns = @{}
+
+foreach ($service in $services) {
+    Write-Host "Deploying Service: $service..." -ForegroundColor Yellow
+    
+    # Build & Push
+    $imageTag = "$acrServer/$($service):latest"
+    docker build -t $imageTag ./$service
+    docker push $imageTag
+
+    # Create/Update Container App
+    # Note: We use public ingress for now for ease of testing, but in production, some should be internal.
+    $app = az containerapp create `
+        --name "greencart-$service" `
+        --resource-group $config.resourceGroup `
+        --environment $config.acaEnvName `
+        --image $imageTag `
+        --target-port (if ($service -eq "notification") { 5005 } else { if ($service -eq "authentication") { 8081 } elseif ($service -eq "inventory") { 8082 } else { 8083 } }) `
+        --ingress external `
+        --registry-server $acrServer `
+        --query "properties.configuration.ingress.fqdn" -o tsv
+
+    $fqdns[$service] = "https://$app"
+    Write-Host "Deployed $service at: $($fqdns[$service])" -ForegroundColor Green
+}
+
+# 4. Deploy API Gateway
+Write-Host "Deploying API Gateway..." -ForegroundColor Yellow
+$gatewayImage = "$acrServer/api-gateway:latest"
+docker build -t $gatewayImage ./api-gateway
+docker push $gatewayImage
+
+$gatewayApp = az containerapp create `
+    --name "greencart-api-gateway" `
+    --resource-group $config.resourceGroup `
+    --environment $config.acaEnvName `
+    --image $gatewayImage `
+    --target-port 8080 `
+    --ingress external `
+    --registry-server $acrServer `
+    --env-vars `
+        "AUTH_SERVICE_URL=$($fqdns['authentication'])" `
+        "INVENTORY_SERVICE_URL=$($fqdns['inventory'])" `
+        "PAYMENT_SERVICE_URL=$($fqdns['payment'])" `
+        "NOTIFICATION_SERVICE_URL=$($fqdns['notification'])" `
+        "PORT=8080" `
+        "NODE_ENV=production" `
+    --query "properties.configuration.ingress.fqdn" -o tsv
+
+$gatewayUrl = "https://$gatewayApp"
+Write-Host "API Gateway deployed at: $gatewayUrl" -ForegroundColor Green
+
+# 5. Deploy Frontend
+Write-Host "Deploying Frontend..." -ForegroundColor Yellow
+$frontendImage = "$acrServer/frontend:latest"
+
+# Build with NEXT_PUBLIC_API_BASE_URL
+docker build -t $frontendImage ./frontend --build-arg NEXT_PUBLIC_API_BASE_URL=$gatewayUrl
+docker push $frontendImage
+
+$frontendApp = az containerapp create `
+    --name "greencart-frontend" `
+    --resource-group $config.resourceGroup `
+    --environment $config.acaEnvName `
+    --image $frontendImage `
+    --target-port 3000 `
+    --ingress external `
+    --registry-server $acrServer `
+    --env-vars "NEXT_PUBLIC_API_BASE_URL=$gatewayUrl" `
+    --query "properties.configuration.ingress.fqdn" -o tsv
+
+Write-Host "Frontend deployed at: https://$frontendApp" -ForegroundColor Cyan
+Write-Host "--- Deployment Complete ---" -ForegroundColor Cyan
