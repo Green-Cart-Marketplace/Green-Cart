@@ -21,7 +21,7 @@ Write-Host "Creating Azure Container Registry: $($config.acrName)..."
 az acr create --resource-group $config.resourceGroup --name $config.acrName --sku Basic --admin-enabled true
 
 $acrServer = az acr show --name $config.acrName --query "loginServer" -o tsv
-az acr login --name $config.acrName
+# az acr login --name $config.acrName # Not needed for az acr build
 
 Write-Host "Creating Container Apps Environment: $($config.acaEnvName)..."
 az containerapp env create --name $config.acaEnvName --resource-group $config.resourceGroup --location $config.location
@@ -33,10 +33,9 @@ $fqdns = @{}
 foreach ($service in $services) {
     Write-Host "Deploying Service: $service..." -ForegroundColor Yellow
     
-    # Build & Push
-    $imageTag = "$acrServer/$($service):latest"
-    docker build -t $imageTag ./$service
-    docker push $imageTag
+    # Build & Push using Azure Container Registry (No local Docker required)
+    Write-Host "Building image in Azure for $service..."
+    az acr build --registry $config.acrName --image "$($service):latest" "./$service"
 
     # Create/Update Container App
     # Note: We use public ingress for now for ease of testing, but in production, some should be internal.
@@ -44,7 +43,7 @@ foreach ($service in $services) {
         --name "greencart-$service" `
         --resource-group $config.resourceGroup `
         --environment $config.acaEnvName `
-        --image $imageTag `
+        --image "$acrServer/$($service):latest" `
         --target-port (if ($service -eq "notification") { 5005 } else { if ($service -eq "authentication") { 8081 } elseif ($service -eq "inventory") { 8082 } else { 8083 } }) `
         --ingress external `
         --registry-server $acrServer `
@@ -56,15 +55,14 @@ foreach ($service in $services) {
 
 # 4. Deploy API Gateway
 Write-Host "Deploying API Gateway..." -ForegroundColor Yellow
-$gatewayImage = "$acrServer/api-gateway:latest"
-docker build -t $gatewayImage ./api-gateway
-docker push $gatewayImage
+Write-Host "Building API Gateway image in Azure..."
+az acr build --registry $config.acrName --image "api-gateway:latest" "./api-gateway"
 
 $gatewayApp = az containerapp create `
     --name "greencart-api-gateway" `
     --resource-group $config.resourceGroup `
     --environment $config.acaEnvName `
-    --image $gatewayImage `
+    --image "$acrServer/api-gateway:latest" `
     --target-port 8080 `
     --ingress external `
     --registry-server $acrServer `
@@ -82,17 +80,16 @@ Write-Host "API Gateway deployed at: $gatewayUrl" -ForegroundColor Green
 
 # 5. Deploy Frontend
 Write-Host "Deploying Frontend..." -ForegroundColor Yellow
-$frontendImage = "$acrServer/frontend:latest"
 
-# Build with NEXT_PUBLIC_API_BASE_URL
-docker build -t $frontendImage ./frontend --build-arg NEXT_PUBLIC_API_BASE_URL=$gatewayUrl
-docker push $frontendImage
+# Build in Azure with NEXT_PUBLIC_API_BASE_URL as build-arg
+Write-Host "Building Frontend image in Azure..."
+az acr build --registry $config.acrName --image "frontend:latest" "./frontend" --build-arg NEXT_PUBLIC_API_BASE_URL=$gatewayUrl
 
 $frontendApp = az containerapp create `
     --name "greencart-frontend" `
     --resource-group $config.resourceGroup `
     --environment $config.acaEnvName `
-    --image $frontendImage `
+    --image "$acrServer/frontend:latest" `
     --target-port 3000 `
     --ingress external `
     --registry-server $acrServer `
