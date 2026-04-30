@@ -1,0 +1,558 @@
+openapi: 3.0.3
+info:
+  title: Green Cart Notification Service API
+  version: 1.0.0
+  description: |
+    API documentation for the Notification service in the Green Cart microservices platform.
+    Includes customer-facing notification endpoints and internal notification/event endpoints.
+servers:
+  - url: http://localhost:4004
+    description: Local development server
+paths:
+  /notifications:
+    post:
+      summary: Create a notification
+      description: Create a new notification for the authenticated user or an admin-specified user.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationRequest'
+      responses:
+        '201':
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /notifications/admin:
+    get:
+      summary: List admin notifications
+      description: Return global system notifications for admin users.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/skip'
+        - $ref: '#/components/parameters/read'
+      responses:
+        '200':
+          description: Admin notifications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /notifications/user/{userId}:
+    get:
+      summary: Get notifications for a user
+      description: Return notifications for a specific user. Admin may request any user; regular users can only request their own notifications.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID to retrieve notifications for
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/skip'
+        - $ref: '#/components/parameters/read'
+        - $ref: '#/components/parameters/type'
+      responses:
+        '200':
+          description: User notifications list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserNotificationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /notifications/stats:
+    get:
+      summary: Get notification statistics
+      description: Return notification counts and breakdown for the authenticated user.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: Notification statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /notifications/unread:
+    get:
+      summary: Get unread notification count
+      description: Return the unread notification count for the authenticated user.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread notification count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unreadCount:
+                    type: integer
+                    description: Number of unread notifications
+                    example: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /notifications/{notificationId}/read:
+    patch:
+      summary: Mark a notification as read
+      description: Mark the specified notification as read for the authenticated user or admin notifications when authorized.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Notification ObjectId
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /notifications/read-all:
+    patch:
+      summary: Mark all notifications as read
+      description: Mark all notifications as read for the authenticated user.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /notifications/{notificationId}:
+    delete:
+      summary: Delete a notification
+      description: Delete a notification belonging to the authenticated user.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Notification ObjectId
+      responses:
+        '200':
+          description: Notification deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /notifications/clear:
+    delete:
+      summary: Clear all notifications
+      description: Delete all notifications belonging to the authenticated user.
+      tags:
+        - Notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /internal/notifications:
+    post:
+      summary: Create internal notification
+      description: Create a notification through the internal service API. This endpoint supports optional email delivery when sendEmail is true.
+      tags:
+        - Internal
+      security:
+        - internalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalCreateNotificationRequest'
+      responses:
+        '201':
+          description: Internal notification created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalNotificationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /internal/events:
+    post:
+      summary: Publish a notification event
+      description: Handle internal event payloads and generate notifications for payment, inventory, cart, and user registration flows.
+      tags:
+        - Internal
+      security:
+        - internalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InternalEventRequest'
+      responses:
+        '201':
+          description: Event processed and notification(s) created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalEventResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    internalApiKey:
+      type: apiKey
+      in: header
+      name: x-internal-api-key
+  parameters:
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Maximum number of notifications to return
+    skip:
+      name: skip
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Number of notifications to skip
+    read:
+      name: read
+      in: query
+      schema:
+        type: boolean
+      description: Filter notifications by read state
+    type:
+      name: type
+      in: query
+      schema:
+        $ref: '#/components/schemas/NotificationType'
+      description: Filter notifications by type
+    userId:
+      name: userId
+      in: query
+      schema:
+        type: string
+      description: Optional userId override for admin requests
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    NotificationType:
+      type: string
+      enum:
+        - inventory
+        - user
+        - payment
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 650b6f2f4f0a5e00123abcd4
+        userId:
+          type: string
+          nullable: true
+          example: 64c3f1ff0a1234567890abcd
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        title:
+          type: string
+          nullable: true
+          example: "Order Shipped"
+        message:
+          type: string
+          example: "Your order has shipped. Track it in your account."
+        actionUrl:
+          type: string
+          nullable: true
+          example: "https://example.com/orders/123"
+        metadata:
+          type: object
+          additionalProperties: true
+          example:
+            orderId: "123"
+            eventType: "PAYMENT_SUCCESS"
+        isRead:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-04-30T12:34:56.789Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-04-30T12:34:56.789Z"
+      required:
+        - id
+        - type
+        - message
+        - isRead
+        - createdAt
+        - updatedAt
+    CreateNotificationRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: Optional specific user ID for admin-created notifications
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        title:
+          type: string
+          maxLength: 255
+        message:
+          type: string
+        actionUrl:
+          type: string
+          format: uri
+        metadata:
+          type: object
+          additionalProperties: true
+      required:
+        - type
+        - message
+    NotificationListResponse:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        limit:
+          type: integer
+          example: 20
+        skip:
+          type: integer
+          example: 0
+      required:
+        - notifications
+        - limit
+        - skip
+    UserNotificationListResponse:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/NotificationListResponse'
+      properties:
+        unreadCount:
+          type: integer
+          example: 2
+      required:
+        - unreadCount
+    NotificationStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 42
+        unread:
+          type: integer
+          example: 5
+        byType:
+          type: object
+          properties:
+            inventory:
+              type: integer
+              example: 20
+            user:
+              type: integer
+              example: 12
+            payment:
+              type: integer
+              example: 10
+      required:
+        - total
+        - unread
+        - byType
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "All notifications marked as read"
+      required:
+        - message
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid internal API key."
+        code:
+          type: string
+          example: "INVALID_INTERNAL_API_KEY"
+    InternalCreateNotificationRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateNotificationRequest'
+        - type: object
+          properties:
+            sendEmail:
+              type: boolean
+              default: false
+            emailTo:
+              type: string
+              format: email
+          description: Internal notification payload with optional email delivery
+    InternalNotificationResponse:
+      type: object
+      properties:
+        notification:
+          $ref: '#/components/schemas/Notification'
+        channels:
+          type: object
+          properties:
+            inApp:
+              type: boolean
+              example: true
+            emailSent:
+              type: boolean
+              example: false
+      required:
+        - notification
+        - channels
+    InternalEventRequest:
+      type: object
+      properties:
+        eventType:
+          type: string
+          description: Event type handled by the notification service
+          enum:
+            - ITEM_CREATED
+            - ITEM_UPDATED
+            - ITEM_DELETED
+            - USER_REGISTERED
+            - PAYMENT_CREATED
+            - PAYMENT_STATUS_CHANGED
+            - PAYMENT_SUCCESS
+            - CART_ITEM_ADDED
+            - CART_ITEM_REMOVED
+        data:
+          type: object
+          description: Event payload data; structure varies by event type
+          additionalProperties: true
+      required:
+        - eventType
+        - data
+    InternalEventResponse:
+      type: object
+      properties:
+        notification:
+          $ref: '#/components/schemas/Notification'
+        adminNotification:
+          $ref: '#/components/schemas/Notification'
+        channels:
+          type: object
+          properties:
+            inAppAdmin:
+              type: boolean
+              example: true
+            inAppUser:
+              type: boolean
+              example: false
+            smsSent:
+              type: boolean
+              example: false
+      description: Response includes created notification(s) and optional delivery channel metadata.
