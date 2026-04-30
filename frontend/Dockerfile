@@ -23,7 +23,7 @@ RUN npm run build
 
 FROM base AS runner
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+ENV NEXT_PUBLIC_API_BASE_URL=https://greencart-api-gateway.mangocliff-2a52b3c1.eastus.azurecontainerapps.io
 
 RUN addgroup -S app && adduser -S app -G app
 
