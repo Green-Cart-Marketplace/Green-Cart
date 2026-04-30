@@ -1,0 +1,22 @@
+name: Frontend CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-cd.yml'
+      - '.github/workflows/_service-cd-template.yml'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_service-cd-template.yml
+    with:
+      service_name: frontend
+      target_port: "3000"
+      build_args: "--build-arg NEXT_PUBLIC_API_BASE_URL=${{ vars.NEXT_PUBLIC_API_BASE_URL }}"
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_REGISTRY_USERNAME: ${{ secrets.AZURE_REGISTRY_USERNAME }}
+      AZURE_REGISTRY_PASSWORD: ${{ secrets.AZURE_REGISTRY_PASSWORD }}

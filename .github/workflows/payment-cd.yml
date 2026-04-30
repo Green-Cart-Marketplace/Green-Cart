@@ -1,0 +1,21 @@
+name: Payment CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'payment/**'
+      - '.github/workflows/payment-cd.yml'
+      - '.github/workflows/_service-cd-template.yml'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_service-cd-template.yml
+    with:
+      service_name: payment
+      target_port: "8083"
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_REGISTRY_USERNAME: ${{ secrets.AZURE_REGISTRY_USERNAME }}
+      AZURE_REGISTRY_PASSWORD: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
