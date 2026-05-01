@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { CartProvider } from "@/lib/cart-context";
 import { WishlistProvider } from "@/lib/wishlist-context";
 import { BaseLayout, type NavItem } from "@/app/components/BaseLayout";
-import { Bell, CreditCard, LayoutDashboard, ShoppingBag, Package } from "lucide-react";
+import { Bell, LayoutDashboard, ShoppingBag, Package } from "lucide-react";
 import { MiniCartDrawer } from "./_components/MiniCartDrawer";
 import styles from "./customer.module.css";
 

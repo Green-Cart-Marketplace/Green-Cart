@@ -104,7 +104,7 @@ export default function CustomerNotificationsPage() {
           <div className={styles.emptyState}>
             <BellRing size={40} className={styles.emptyIcon} />
             <h3>All caught up!</h3>
-            <p className={styles.subtle}>You don't have any notifications yet.</p>
+            <p className={styles.subtle}>You don&apos;t have any notifications yet.</p>
           </div>
         ) : null}
 
