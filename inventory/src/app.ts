@@ -8,6 +8,7 @@ import { inventoryRateLimiter } from "./middleware/rateLimiter";
 import cartRouter from "./routes/cart";
 import wishlistRouter from "./routes/wishlist";
 import orderRouter from "./routes/order";
+import internalRouter from "./routes/internal";
 
 export function createApp() {
     const app = express();
@@ -34,6 +35,7 @@ export function createApp() {
     // Routes mounted at root since API Gateway strips service prefixes
     // Note: Specific routers must be mounted BEFORE the catch-all inventoryRouter
     // because inventoryRouter contains a /:id route that matches any single path segment.
+    app.use("/internal", internalRouter);
     app.use("/cart", cartRouter);
     app.use("/wishlist", wishlistRouter);
     app.use("/orders", orderRouter);

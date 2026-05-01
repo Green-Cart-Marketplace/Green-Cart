@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const rawEnvSchema = z.object({
-  PORT: z.coerce.number().int().positive().default(5005),
+  PORT: z.coerce.number().int().positive().default(8084),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   JWT_ACCESS_SECRET: z.string().min(16, "JWT_ACCESS_SECRET must be at least 16 characters"),

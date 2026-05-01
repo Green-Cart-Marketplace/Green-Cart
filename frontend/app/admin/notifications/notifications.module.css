@@ -1,109 +1,196 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
 .headerRow {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .title {
-  font-size: 1.7rem;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--ink), var(--ink-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.25rem;
 }
 
 .subtle {
-  color: var(--ink-muted);
+  color: var(--ink-subtle);
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .headerMeta {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: .65rem;
+  gap: 1rem;
 }
 
 .unreadPill {
   display: inline-flex;
   align-items: center;
-  padding: .2rem .6rem;
-  border-radius: var(--r-full);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink);
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(var(--primary-rgb, 0, 122, 255), 0.1);
+  color: var(--primary, #007aff);
   font-weight: 700;
-  font-size: .85rem;
+  font-size: 0.85rem;
+  border: 1px solid rgba(var(--primary-rgb, 0, 122, 255), 0.2);
 }
 
 .errorBox {
-  padding: .75rem .85rem;
-  border-radius: var(--r-md);
-  border: 1px solid var(--danger);
-  background: var(--danger-light);
-  color: var(--ink);
-  font-weight: 650;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
 }
 
 .list {
-  display: grid;
-  gap: .65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .card {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: var(--r-lg);
-  padding: .85rem .9rem;
-  box-shadow: var(--shadow-sm);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
 }
 
 .unreadCard {
-  border-color: var(--border-focus);
+  background: rgba(var(--primary-rgb, 0, 122, 255), 0.03);
+  border-color: rgba(var(--primary-rgb, 0, 122, 255), 0.2);
+}
+
+.unreadCard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--primary, #007aff);
 }
 
 .cardTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: .75rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink-muted);
+}
+
+.unreadCard .iconWrapper {
+  background: rgba(var(--primary-rgb, 0, 122, 255), 0.1);
+  color: var(--primary, #007aff);
 }
 
 .typeTag {
-  display: inline-flex;
-  align-items: center;
-  padding: .18rem .55rem;
-  border-radius: var(--r-full);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--ink);
+  font-size: 0.7rem;
   font-weight: 800;
-  font-size: .78rem;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: 0.1em;
+  color: var(--ink-subtle);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
 }
 
 .time {
   color: var(--ink-subtle);
-  font-size: .85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .message {
-  margin-top: .5rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
   color: var(--ink);
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .cardActions {
-  margin-top: .75rem;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.markReadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  background: var(--primary, #007aff);
+  color: white;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.markReadBtn:hover {
+  filter: brightness(1.1);
+  transform: scale(1.02);
 }
 
 .readHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--ink-subtle);
-  font-weight: 700;
-  font-size: .9rem;
+  font-weight: 600;
+  font-size: 0.85rem;
 }
+
+/* Specific type colors if needed */
+.type_inventory .iconWrapper { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+.type_user .iconWrapper { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+.type_payment .iconWrapper { color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }

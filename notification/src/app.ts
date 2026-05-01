@@ -42,13 +42,13 @@ app.get("/health", (_req, res) => {
 });
 
 // Routes
-// Mounted at both / and /notifications to ensure compatibility with API Gateway stripping 
-// and to match /notifications/admin paths correctly.
-// Note: More specific paths must come before the root / path.
-app.use("/notifications", notificationRateLimiter, notificationRoutes);
-app.use("/", notificationRateLimiter, notificationRoutes);
 app.use("/internal/notifications", internalNotificationRoutes);
 app.use("/internal/events", internalEventRoutes);
+
+// Mounted at both / and /notifications to ensure compatibility with API Gateway stripping 
+// and to match /notifications/admin paths correctly.
+app.use("/notifications", notificationRateLimiter, notificationRoutes);
+app.use("/", notificationRateLimiter, notificationRoutes);
 
 // 404 handler
 app.use((_req, res) => {

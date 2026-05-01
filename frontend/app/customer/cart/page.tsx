@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
-import { apiInitiatePayment, submitPayHereForm } from "@/lib/payment";
+import { apiCreateOrder } from "@/lib/order-api";
 import { AlertTriangle, ArrowLeft, Minus, Plus, Trash2, ShoppingCart, CreditCard, Loader2 } from "lucide-react";
 import styles from "./cart.module.css";
 
@@ -56,26 +56,11 @@ export default function CartPage() {
     setCheckoutError(null);
 
     try {
-      const orderId = `ORD-${Date.now()}`;
-      const response = await apiInitiatePayment({
-        orderId,
-        customerId: user._id,
-        amount: cart.totalPrice,
-        currency: "LKR",
-        returnUrl: `${globalThis.location?.origin ?? "http://localhost:3000"}/checkout/success`,
-        items: cart.items.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price
-        }))
-      });
-
-      localStorage.setItem("gc_last_txn_id", response.transactionId);
-      localStorage.setItem("gc_cart_order_id", orderId);
-      localStorage.setItem("gc_buy_again_items", JSON.stringify(cart.items.map((item) => item.name)));
-      submitPayHereForm(response.checkoutUrl, response.paymentPayload);
+      const order = await apiCreateOrder();
+      localStorage.setItem("gc_last_order_id", order.orderId);
+      router.push("/customer/orders");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to initiate payment";
+      const message = err instanceof Error ? err.message : "Failed to place order";
       setCheckoutError(message);
     } finally {
       setCheckingOut(false);
@@ -202,7 +187,7 @@ export default function CartPage() {
             ) : (
               <>
                 <CreditCard size={16} />
-                Checkout with PayHere
+                Place Order
               </>
             )}
           </button>

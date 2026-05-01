@@ -12,6 +12,7 @@ router.use(internalAuth);
 router.post("/", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { eventType, data } = internalEventSchema.parse(req.body);
+    console.log(`[Notification] Received event: ${eventType}`, JSON.stringify(data));
 
     const getString = (key: string): string | undefined => {
       const value = data[key];
@@ -38,6 +39,16 @@ router.post("/", async (req: Request, res: Response, next: NextFunction): Promis
       if (typeof amount !== "number") return "";
       const ccy = currency || "";
       return `${amount}${ccy ? ` ${ccy}` : ""}`;
+    };
+
+    const buildOrderSummary = (): { orderId?: string; customerId?: string; totalAmount?: number; currency?: string; status?: string } => {
+      return {
+        orderId: getString("orderId"),
+        customerId: getString("customerId"),
+        totalAmount: getNumber("totalAmount"),
+        currency: getString("currency"),
+        status: getString("status"),
+      };
     };
 
     switch (eventType) {
@@ -70,15 +81,17 @@ router.post("/", async (req: Request, res: Response, next: NextFunction): Promis
           metadata: { eventType, ...data },
         });
 
-        // If completed, also notify the user + attempt SMS
-        if (statusStr === "completed") {
+        // If completed/failed, also notify the user + attempt SMS
+        if (statusStr === "completed" || statusStr === "failed") {
           const userId = p.userId ?? "";
           if (!userId) {
             res.status(201).json({ notification: adminNotification, channels: { inAppAdmin: true, inAppUser: false, smsSent: false } });
             return;
           }
 
-          const userMessage = `Payment successful for order ${p.orderId ?? "(unknown)"}. ${amountStr ? `Amount ${amountStr}. ` : ""}Transaction ${p.transactionId ?? "(unknown)"}.`;
+          const userMessage = statusStr === "completed"
+            ? `Payment successful for order ${p.orderId ?? "(unknown)"}. ${amountStr ? `Amount ${amountStr}. ` : ""}Transaction ${p.transactionId ?? "(unknown)"}.`
+            : `Payment failed for order ${p.orderId ?? "(unknown)"}. ${amountStr ? `Amount ${amountStr}. ` : ""}Transaction ${p.transactionId ?? "(unknown)"}.`;
 
           const userNotification = await notificationService.createNotification({
             userId,
@@ -109,6 +122,116 @@ router.post("/", async (req: Request, res: Response, next: NextFunction): Promis
         }
 
         res.status(201).json({ notification: adminNotification });
+        return;
+      }
+
+      case "ORDER_CREATED": {
+        const o = buildOrderSummary();
+        const amountStr = formatMoney(o.totalAmount, o.currency);
+        const adminMessage = `New order placed: ${o.orderId ?? "(unknown)"} — customer ${o.customerId ?? "(unknown)"}${amountStr ? ` — amount ${amountStr}` : ""}`;
+
+        const adminNotification = await notificationService.createNotification({
+          userId: null,
+          type: "inventory",
+          message: adminMessage,
+          metadata: { eventType, ...data },
+        });
+
+        // Optional user notification (in-app)
+        if (o.customerId) {
+          await notificationService.createNotification({
+            userId: o.customerId,
+            type: "inventory",
+            message: `Order received: ${o.orderId ?? "(unknown)"}. Awaiting admin confirmation.`,
+            metadata: { eventType, ...data },
+          });
+        }
+
+        res.status(201).json({ notification: adminNotification });
+        return;
+      }
+
+      case "ORDER_ACCEPTED": {
+        const o = buildOrderSummary();
+        const amountStr = formatMoney(o.totalAmount, o.currency);
+
+        const adminNotification = await notificationService.createNotification({
+          userId: null,
+          type: "inventory",
+          message: `Order accepted: ${o.orderId ?? "(unknown)"} — customer ${o.customerId ?? "(unknown)"}${amountStr ? ` — amount ${amountStr}` : ""}`,
+          metadata: { eventType, ...data },
+        });
+
+        const userId = o.customerId ?? "";
+        if (!userId) {
+          res.status(201).json({ notification: adminNotification, channels: { inAppAdmin: true, inAppUser: false, smsSent: false } });
+          return;
+        }
+
+        const userMessage = `Your order ${o.orderId ?? "(unknown)"} has been accepted. You can pay now.`;
+        const userNotification = await notificationService.createNotification({
+          userId,
+          type: "inventory",
+          message: userMessage,
+          metadata: { eventType, ...data },
+        });
+
+        let smsSent = false;
+        try {
+          const contact = await getUserContactById(userId);
+          if (contact?.phone) {
+            smsSent = await sendSms({
+              to: contact.phone,
+              body: userMessage,
+            });
+          }
+        } catch (err) {
+          console.error("ORDER_ACCEPTED SMS flow failed:", err);
+        }
+
+        res.status(201).json({ adminNotification, notification: userNotification, channels: { inAppAdmin: true, inAppUser: true, smsSent } });
+        return;
+      }
+
+      case "ORDER_REJECTED": {
+        const o = buildOrderSummary();
+        const amountStr = formatMoney(o.totalAmount, o.currency);
+
+        const adminNotification = await notificationService.createNotification({
+          userId: null,
+          type: "inventory",
+          message: `Order rejected: ${o.orderId ?? "(unknown)"} — customer ${o.customerId ?? "(unknown)"}${amountStr ? ` — amount ${amountStr}` : ""}`,
+          metadata: { eventType, ...data },
+        });
+
+        const userId = o.customerId ?? "";
+        if (!userId) {
+          res.status(201).json({ notification: adminNotification, channels: { inAppAdmin: true, inAppUser: false, smsSent: false } });
+          return;
+        }
+
+        const userMessage = `Your order ${o.orderId ?? "(unknown)"} has been rejected. Please contact support or place a new order.`;
+        const userNotification = await notificationService.createNotification({
+          userId,
+          type: "inventory",
+          message: userMessage,
+          metadata: { eventType, ...data },
+        });
+
+        let smsSent = false;
+        try {
+          const contact = await getUserContactById(userId);
+          if (contact?.phone) {
+            smsSent = await sendSms({
+              to: contact.phone,
+              body: userMessage,
+            });
+          }
+        } catch (err) {
+          console.error("ORDER_REJECTED SMS flow failed:", err);
+        }
+
+        res.status(201).json({ adminNotification, notification: userNotification, channels: { inAppAdmin: true, inAppUser: true, smsSent } });
         return;
       }
 
@@ -169,7 +292,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction): Promis
         const itemName = typeof data.itemName === "string" ? data.itemName : "item";
         const notification = await notificationService.createNotification({
           userId,
-          type: "inventory",
+          type: "user",
           message: `Added to cart: ${itemName}`,
           metadata: { eventType, ...data },
         });
@@ -186,7 +309,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction): Promis
         const itemName = typeof data.itemName === "string" ? data.itemName : "item";
         const notification = await notificationService.createNotification({
           userId,
-          type: "inventory",
+          type: "user",
           message: `Removed from cart: ${itemName}`,
           metadata: { eventType, ...data },
         });

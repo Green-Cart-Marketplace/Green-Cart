@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, Loader2, MapPin, ReceiptText } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { apiGetCart, type Cart } from "@/lib/cart-api";
-import { apiInitiatePayment, submitPayHereForm } from "@/lib/payment";
+import { apiCreateOrder } from "@/lib/order-api";
 import styles from "./checkout.module.css";
 
 type Step = 1 | 2 | 3;
@@ -14,21 +14,17 @@ type Step = 1 | 2 | 3;
 const STEP_LABELS: Record<Step, string> = {
   1: "Delivery",
   2: "Review",
-  3: "Payment"
+  3: "Place Order"
 };
 
 function getStepTitle(step: Step): string {
   const map: Record<Step, string> = {
     1: "Delivery Info",
     2: "Review Items",
-    3: "Payment"
+    3: "Place Order"
   };
 
   return map[step];
-}
-
-function getReturnUrl(): string {
-  return `${globalThis.location?.origin ?? "http://localhost:3000"}/checkout/success`;
 }
 
 function getDeliveryPreview(address: string, city: string): string {
@@ -44,7 +40,8 @@ function renderStepContent(
   cart: Cart,
   stylesMap: Record<string, string>,
   deliveryInfo: { fullName: string; phone: string; address: string; city: string; notes: string },
-  setDeliveryInfo: React.Dispatch<React.SetStateAction<{ fullName: string; phone: string; address: string; city: string; notes: string }>>
+  setDeliveryInfo: React.Dispatch<React.SetStateAction<{ fullName: string; phone: string; address: string; city: string; notes: string }>>,
+  userPhone?: string
 ): React.ReactNode {
   if (step === 1) {
     return (
@@ -62,8 +59,13 @@ function renderStepContent(
           <input
             className="form-input"
             value={deliveryInfo.phone}
-            onChange={(e) => setDeliveryInfo((p) => ({ ...p, phone: e.target.value }))}
+            readOnly
+            disabled
+            placeholder={userPhone ? undefined : "Add a phone number in your Profile"}
           />
+          <small style={{ color: "var(--ink-subtle)" }}>
+            This is pulled from your account profile.
+          </small>
         </label>
         <label className="form-group" style={{ gridColumn: "1 / -1" }}>
           <span className="form-label">Address</span>
@@ -140,6 +142,9 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Keep delivery phone synced from auth profile (not user-entered).
+    setDeliveryInfo((p) => ({ ...p, phone: user.phone ?? "" }));
+
     const loadCart = async () => {
       try {
         setLoading(true);
@@ -156,13 +161,14 @@ export default function CheckoutPage() {
   }, [user, router]);
 
   const canContinueDelivery = useMemo(() => {
+    const phone = (user?.phone ?? "").trim();
     return Boolean(
       deliveryInfo.fullName.trim() &&
-      deliveryInfo.phone.trim() &&
+      phone &&
       deliveryInfo.address.trim() &&
       deliveryInfo.city.trim()
     );
-  }, [deliveryInfo]);
+  }, [deliveryInfo, user]);
 
   const stepTitle = getStepTitle(step);
 
@@ -176,26 +182,11 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      const orderId = `ORD-${Date.now()}`;
-      const response = await apiInitiatePayment({
-        orderId,
-        customerId: user._id,
-        amount: cart.totalPrice,
-        currency: "LKR",
-        returnUrl: getReturnUrl(),
-        items: cart.items.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price
-        }))
-      });
-
-      localStorage.setItem("gc_last_txn_id", response.transactionId);
-      localStorage.setItem("gc_last_order_id", orderId);
-      localStorage.setItem("gc_buy_again_items", JSON.stringify(cart.items.map((item) => item.name)));
-      submitPayHereForm(response.checkoutUrl, response.paymentPayload);
+      const order = await apiCreateOrder();
+      localStorage.setItem("gc_last_order_id", order.orderId);
+      router.push("/customer/orders");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to initiate payment.");
+      setError(err instanceof Error ? err.message : "Failed to place order.");
       setSubmitting(false);
     }
   };
@@ -245,7 +236,7 @@ export default function CheckoutPage() {
             <section className={styles.mainStepCard}>
               <h2 className={styles.sectionTitle}>{stepTitle}</h2>
 
-              {renderStepContent(step, cart, styles, deliveryInfo, setDeliveryInfo)}
+              {renderStepContent(step, cart, styles, deliveryInfo, setDeliveryInfo, user?.phone)}
 
               <div className={styles.stepActions}>
                 {step > 1 ? (
@@ -265,7 +256,7 @@ export default function CheckoutPage() {
                 ) : (
                   <button className="btn btn-primary" onClick={handlePay} disabled={submitting}>
                     {submitting ? <Loader2 size={15} className={styles.spin} /> : <CreditCard size={15} />}
-                    {submitting ? "Redirecting..." : "Pay with PayHere"}
+                    {submitting ? "Placing..." : "Place Order"}
                   </button>
                 )}
               </div>

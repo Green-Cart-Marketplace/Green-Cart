@@ -5,7 +5,10 @@ export type NotificationEventType =
     | "ITEM_UPDATED"
     | "ITEM_DELETED"
     | "CART_ITEM_ADDED"
-    | "CART_ITEM_REMOVED";
+    | "CART_ITEM_REMOVED"
+    | "ORDER_CREATED"
+    | "ORDER_ACCEPTED"
+    | "ORDER_REJECTED";
 
 export async function emitNotificationEvent(eventType: NotificationEventType, data: Record<string, unknown>): Promise<void> {
     if (!env.INTERNAL_API_KEY) {
@@ -26,9 +29,11 @@ export async function emitNotificationEvent(eventType: NotificationEventType, da
 
         if (!res.ok) {
             const text = await res.text();
-            console.error(`Failed to emit ${eventType} to notification service (${res.status}):`, text || res.statusText);
+            console.error(`✗ [Inventory] Failed to emit ${eventType} to notification service (${res.status}):`, text || res.statusText);
+        } else {
+            console.log(`✓ [Inventory] Successfully emitted ${eventType} to notification service`);
         }
     } catch (err) {
-        console.error(`Failed to emit ${eventType} to notification service:`, err);
+        console.error(`✗ [Inventory] Error emitting ${eventType} to notification service:`, err);
     }
 }
