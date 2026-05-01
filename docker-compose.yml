@@ -18,6 +18,8 @@ services:
       LOGIN_RATE_LIMIT_MAX: 50
       REGISTER_RATE_LIMIT_MAX: 20
       CORS_ORIGINS: http://localhost:3000
+      INTERNAL_API_KEY: greencart-internal-service-key-2026
+      NOTIFICATION_SERVICE_URL: http://notification:5005
     ports:
       - "8081:8081"
 
@@ -40,6 +42,8 @@ services:
       LOW_STOCK_THRESHOLD: 10
       DEFAULT_PAGE_SIZE: 20
       MAX_PAGE_SIZE: 100
+      INTERNAL_API_KEY: greencart-internal-service-key-2026
+      NOTIFICATION_SERVICE_URL: http://notification:5005
     ports:
       - "8082:8082"
 
@@ -66,6 +70,7 @@ services:
       PAYMENT_CALLBACK_URL: http://localhost:8083/payment/webhook/payhere
       PAYMENT_RETURN_URL: http://localhost:3000/checkout/success
       PAYMENT_CANCEL_URL: http://localhost:3000/checkout/cancel
+      INTERNAL_API_KEY: greencart-internal-service-key-2026
       NOTIFICATION_SERVICE_URL: http://notification:5005
       INVENTORY_SERVICE_URL: http://inventory:8082
     ports:
@@ -82,6 +87,7 @@ services:
       MONGODB_URI: mongodb+srv://janitha:1218@cluster0.9v3utpm.mongodb.net/GreenCartNotification?appName=Cluster0
       JWT_ACCESS_SECRET: de588fe20781e422c067a2efa7ea675b094b1360b613581fdd024e67803c4e6b
       CORS_ORIGINS: http://localhost:3000
+      INTERNAL_API_KEY: greencart-internal-service-key-2026
       SMTP_HOST: localhost
       SMTP_PORT: 1025
       SMTP_USER: test@example.com

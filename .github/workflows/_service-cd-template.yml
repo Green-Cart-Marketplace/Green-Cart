@@ -58,3 +58,4 @@ jobs:
           resourceGroup: greencart-rg
           containerAppEnvironment: greencart-env
           imageToDeploy: ${{ secrets.AZURE_REGISTRY_USERNAME }}.azurecr.io/${{ inputs.service_name }}:${{ github.sha }}
+
