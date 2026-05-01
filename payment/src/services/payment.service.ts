@@ -10,6 +10,7 @@ import {
 import { getEnvOrThrow } from "../config/env.js";
 import { emitNotificationEvent } from "./notificationEvents.service.js";
 import { inventoryClientService } from "./inventoryClient.service.js";
+import { getUserContactById } from "./authenticationClient.service.js";
 
 interface PayHereCheckoutPayload {
     merchant_id: string;
@@ -63,6 +64,18 @@ export class PaymentService {
             if (err instanceof AppError) throw err;
         }
 
+        // Best-effort: fetch customer contact info securely from auth service.
+        // This avoids manually entering phone numbers in the client.
+        let contactPhone: string | undefined;
+        let contactEmail: string | undefined;
+        try {
+            const contact = await getUserContactById(customerId);
+            contactPhone = contact?.phone?.trim() || undefined;
+            contactEmail = contact?.email?.trim() || undefined;
+        } catch (err) {
+            console.error("Failed to fetch customer contact from auth service:", err);
+        }
+
         // Check for idempotency — prevent duplicate payments for same order
         const idempotencyKey = generateIdempotencyKey(customerId, input.orderId);
         const existingTxn = await Transaction.findOne({ idempotencyKey });
@@ -89,8 +102,8 @@ export class PaymentService {
                     amount: majorAmount,
                     first_name: "Customer",
                     last_name: "",
-                    email: "customer@greencart.local",
-                    phone: "0000000000",
+                    email: contactEmail || "customer@greencart.local",
+                    phone: contactPhone || "0000000000",
                     address: "N/A",
                     city: "N/A",
                     country: "Sri Lanka",
@@ -147,8 +160,8 @@ export class PaymentService {
             amount: majorAmount,
             first_name: "Customer",
             last_name: "",
-            email: "customer@greencart.local",
-            phone: "0000000000",
+            email: contactEmail || "customer@greencart.local",
+            phone: contactPhone || "0000000000",
             address: "N/A",
             city: "N/A",
             country: "Sri Lanka",

@@ -42,7 +42,7 @@ services:
       DEFAULT_PAGE_SIZE: 20
       MAX_PAGE_SIZE: 100
       INTERNAL_API_KEY: dev-internal-key
-      NOTIFICATION_SERVICE_URL: http://notification:5005
+      NOTIFICATION_SERVICE_URL: http://notification:8084
     ports:
       - "8082:8082"
 
@@ -70,7 +70,8 @@ services:
       PAYMENT_RETURN_URL: http://localhost:3000/checkout/success
       PAYMENT_CANCEL_URL: http://localhost:3000/checkout/cancel
       INTERNAL_API_KEY: dev-internal-key
-      NOTIFICATION_SERVICE_URL: http://notification:5005
+      AUTHENTICATION_SERVICE_URL: http://authentication:8081
+      NOTIFICATION_SERVICE_URL: http://notification:8084
       INVENTORY_SERVICE_URL: http://inventory:8082
     ports:
       - "8083:8083"
@@ -81,7 +82,7 @@ services:
     container_name: greencart-notification
     restart: unless-stopped
     environment:
-      PORT: 5005
+      PORT: 8084
       NODE_ENV: production
       MONGODB_URI: mongodb+srv://janitha:1218@cluster0.9v3utpm.mongodb.net/GreenCartNotification?appName=Cluster0
       JWT_ACCESS_SECRET: de588fe20781e422c067a2efa7ea675b094b1360b613581fdd024e67803c4e6b
@@ -96,7 +97,7 @@ services:
       PAYMENT_SERVICE_URL: http://payment:8083
       INTERNAL_API_KEY: dev-internal-key
     ports:
-      - "8084:5005"
+      - "8084:8084"
 
   api-gateway:
     build:
@@ -119,7 +120,7 @@ services:
       AUTH_SERVICE_URL: http://authentication:8081
       INVENTORY_SERVICE_URL: http://inventory:8082
       PAYMENT_SERVICE_URL: http://payment:8083
-      NOTIFICATION_SERVICE_URL: http://notification:5005
+      NOTIFICATION_SERVICE_URL: http://notification:8084
     ports:
       - "8080:8080"
 

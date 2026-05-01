@@ -12,6 +12,7 @@ router.use(internalAuth);
 router.post("/", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { eventType, data } = internalEventSchema.parse(req.body);
+    console.log(`[Notification] Received event: ${eventType}`, JSON.stringify(data));
 
     const getString = (key: string): string | undefined => {
       const value = data[key];
@@ -291,7 +292,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction): Promis
         const itemName = typeof data.itemName === "string" ? data.itemName : "item";
         const notification = await notificationService.createNotification({
           userId,
-          type: "inventory",
+          type: "user",
           message: `Added to cart: ${itemName}`,
           metadata: { eventType, ...data },
         });
@@ -308,7 +309,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction): Promis
         const itemName = typeof data.itemName === "string" ? data.itemName : "item";
         const notification = await notificationService.createNotification({
           userId,
-          type: "inventory",
+          type: "user",
           message: `Removed from cart: ${itemName}`,
           metadata: { eventType, ...data },
         });

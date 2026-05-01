@@ -40,7 +40,8 @@ function renderStepContent(
   cart: Cart,
   stylesMap: Record<string, string>,
   deliveryInfo: { fullName: string; phone: string; address: string; city: string; notes: string },
-  setDeliveryInfo: React.Dispatch<React.SetStateAction<{ fullName: string; phone: string; address: string; city: string; notes: string }>>
+  setDeliveryInfo: React.Dispatch<React.SetStateAction<{ fullName: string; phone: string; address: string; city: string; notes: string }>>,
+  userPhone?: string
 ): React.ReactNode {
   if (step === 1) {
     return (
@@ -58,8 +59,13 @@ function renderStepContent(
           <input
             className="form-input"
             value={deliveryInfo.phone}
-            onChange={(e) => setDeliveryInfo((p) => ({ ...p, phone: e.target.value }))}
+            readOnly
+            disabled
+            placeholder={userPhone ? undefined : "Add a phone number in your Profile"}
           />
+          <small style={{ color: "var(--ink-subtle)" }}>
+            This is pulled from your account profile.
+          </small>
         </label>
         <label className="form-group" style={{ gridColumn: "1 / -1" }}>
           <span className="form-label">Address</span>
@@ -136,6 +142,9 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Keep delivery phone synced from auth profile (not user-entered).
+    setDeliveryInfo((p) => ({ ...p, phone: user.phone ?? "" }));
+
     const loadCart = async () => {
       try {
         setLoading(true);
@@ -152,13 +161,14 @@ export default function CheckoutPage() {
   }, [user, router]);
 
   const canContinueDelivery = useMemo(() => {
+    const phone = (user?.phone ?? "").trim();
     return Boolean(
       deliveryInfo.fullName.trim() &&
-      deliveryInfo.phone.trim() &&
+      phone &&
       deliveryInfo.address.trim() &&
       deliveryInfo.city.trim()
     );
-  }, [deliveryInfo]);
+  }, [deliveryInfo, user]);
 
   const stepTitle = getStepTitle(step);
 
@@ -226,7 +236,7 @@ export default function CheckoutPage() {
             <section className={styles.mainStepCard}>
               <h2 className={styles.sectionTitle}>{stepTitle}</h2>
 
-              {renderStepContent(step, cart, styles, deliveryInfo, setDeliveryInfo)}
+              {renderStepContent(step, cart, styles, deliveryInfo, setDeliveryInfo, user?.phone)}
 
               <div className={styles.stepActions}>
                 {step > 1 ? (

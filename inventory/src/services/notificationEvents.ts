@@ -29,9 +29,11 @@ export async function emitNotificationEvent(eventType: NotificationEventType, da
 
         if (!res.ok) {
             const text = await res.text();
-            console.error(`Failed to emit ${eventType} to notification service (${res.status}):`, text || res.statusText);
+            console.error(`✗ [Inventory] Failed to emit ${eventType} to notification service (${res.status}):`, text || res.statusText);
+        } else {
+            console.log(`✓ [Inventory] Successfully emitted ${eventType} to notification service`);
         }
     } catch (err) {
-        console.error(`Failed to emit ${eventType} to notification service:`, err);
+        console.error(`✗ [Inventory] Error emitting ${eventType} to notification service:`, err);
     }
 }
