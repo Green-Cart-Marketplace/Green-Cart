@@ -14,8 +14,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: "/customer/dashboard", label: "Dashboard", icon: <LayoutDashboard size={15} /> },
     { href: "/products", label: "Shop", icon: <ShoppingBag size={15} /> },
     { href: "/customer/orders", label: "Orders", icon: <Package size={15} /> },
-    { href: "/customer/notifications", label: "Notifications", icon: <Bell size={15} /> },
-    { href: "/checkout", label: "Checkout", icon: <CreditCard size={15} /> },
+    { href: "/customer/notifications", label: "Notifications", icon: <Bell size={15} /> }
 ];
 
 interface CustomerLayoutProps {

@@ -13,7 +13,7 @@ import styles from "./cart.module.css";
 export default function CartPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { cart, loading, error: cartError, fetchCart, updateItem, removeItem } = useCart();
+  const { cart, loading, error: cartError, fetchCart, updateItem, removeItem, clearCart } = useCart();
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -58,6 +58,7 @@ export default function CartPage() {
     try {
       const order = await apiCreateOrder();
       localStorage.setItem("gc_last_order_id", order.orderId);
+      await clearCart();
       router.push("/customer/orders");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to place order";
