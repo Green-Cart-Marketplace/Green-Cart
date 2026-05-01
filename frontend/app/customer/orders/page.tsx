@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { apiGetOrders, type OrdersResponse } from "@/lib/order-api";
-import { Package, ArrowLeft, Loader2, Calendar, DollarSign, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Package, ArrowLeft, Loader2, Calendar, DollarSign, CheckCircle2, Clock, AlertCircle, CreditCard } from "lucide-react";
 
 const statusColors: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
   pending: { bg: "#fef3c7", text: "#92400e", icon: <Clock size={16} /> },
+  accepted: { bg: "#dbeafe", text: "#0c4a6e", icon: <CheckCircle2 size={16} /> },
+  rejected: { bg: "#fee2e2", text: "#991b1b", icon: <AlertCircle size={16} /> },
   paid: { bg: "#dcfce7", text: "#166534", icon: <CheckCircle2 size={16} /> },
   failed: { bg: "#fee2e2", text: "#991b1b", icon: <AlertCircle size={16} /> },
   cancelled: { bg: "#f3f4f6", text: "#4b5563", icon: <AlertCircle size={16} /> },
@@ -154,6 +156,17 @@ export default function OrdersPage() {
                   Paid on {new Date(order.paidAt).toLocaleDateString()}
                 </p>
               )}
+
+              {order.status === "accepted" ? (
+                <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
+                  <Link
+                    className="btn btn-primary btn-sm"
+                    href={`/customer/payments?orderId=${encodeURIComponent(order.orderId)}&amount=${encodeURIComponent(String(order.totalAmount))}`}
+                  >
+                    <CreditCard size={15} /> Pay Now
+                  </Link>
+                </div>
+              ) : null}
             </div>
           );
         })}

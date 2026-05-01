@@ -60,6 +60,9 @@ export const eventTypeSchema = z.enum([
   "PAYMENT_SUCCESS",
   "CART_ITEM_ADDED",
   "CART_ITEM_REMOVED",
+  "ORDER_CREATED",
+  "ORDER_ACCEPTED",
+  "ORDER_REJECTED",
 ]);
 
 export const internalEventSchema = z.object({

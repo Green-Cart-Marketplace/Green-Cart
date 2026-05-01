@@ -71,6 +71,13 @@ export class OrderService {
     }
 
     /**
+     * Get order by ID (no customer filter) - admin/internal use.
+     */
+    async getOrderAny(orderId: string): Promise<IOrder> {
+        return this.getOrder(orderId);
+    }
+
+    /**
      * Get customer's orders
      */
     async getCustomerOrders(customerId: string, limit: number = 20, offset: number = 0): Promise<{
@@ -84,6 +91,47 @@ export class OrderService {
             .skip(offset);
 
         return { orders, total };
+    }
+
+    /**
+     * Get all orders - admin use.
+     */
+    async getAllOrders(limit: number = 20, offset: number = 0): Promise<{ orders: IOrder[]; total: number }> {
+        const [orders, total] = await Promise.all([
+            Order.find({}).sort({ createdAt: -1 }).limit(limit).skip(offset),
+            Order.countDocuments({})
+        ]);
+
+        return { orders, total };
+    }
+
+    /**
+     * Admin update order status without customer scoping.
+     */
+    async updateOrderStatusAdmin(orderId: string, status: IOrder["status"]): Promise<IOrder> {
+        const order = await this.getOrderAny(orderId);
+
+        if (status === "accepted" || status === "rejected") {
+            if (order.status !== "pending") {
+                throw new AppError("Only pending orders can be accepted/rejected", 400, "INVALID_STATUS_TRANSITION");
+            }
+        }
+
+        if (status === "shipped") {
+            if (order.status !== "paid") {
+                throw new AppError("Only paid orders can be shipped", 400, "INVALID_STATUS_TRANSITION");
+            }
+        }
+
+        if (status === "delivered") {
+            if (order.status !== "shipped") {
+                throw new AppError("Only shipped orders can be delivered", 400, "INVALID_STATUS_TRANSITION");
+            }
+        }
+
+        order.status = status;
+        await order.save();
+        return order;
     }
 
     /**
@@ -110,6 +158,47 @@ export class OrderService {
         }
 
         await order.save();
+        return order;
+    }
+
+    /**
+     * Internal payment update (called by payment service via internal API key).
+     * Updates paid/failed and clears cart on success.
+     */
+    async updateOrderPaymentInternal(params: {
+        orderId: string;
+        status: "paid" | "failed";
+        transactionId?: string;
+        payHereId?: string;
+    }): Promise<IOrder> {
+        const order = await this.getOrderAny(params.orderId);
+
+        order.status = params.status;
+        if (params.transactionId) {
+            order.transactionId = params.transactionId;
+        }
+        if (params.payHereId) {
+            order.payHereId = params.payHereId;
+        }
+        if (params.status === "paid") {
+            order.paidAt = new Date();
+        }
+
+        await order.save();
+
+        if (params.status === "paid") {
+            await Cart.updateOne(
+                { customerId: order.customerId },
+                {
+                    $set: {
+                        items: [],
+                        totalItems: 0,
+                        totalPrice: 0,
+                    },
+                }
+            );
+        }
+
         return order;
     }
 

@@ -18,6 +18,7 @@ services:
       LOGIN_RATE_LIMIT_MAX: 50
       REGISTER_RATE_LIMIT_MAX: 20
       CORS_ORIGINS: http://localhost:3000
+      INTERNAL_API_KEY: dev-internal-key
     ports:
       - "8081:8081"
 
@@ -40,6 +41,8 @@ services:
       LOW_STOCK_THRESHOLD: 10
       DEFAULT_PAGE_SIZE: 20
       MAX_PAGE_SIZE: 100
+      INTERNAL_API_KEY: dev-internal-key
+      NOTIFICATION_SERVICE_URL: http://notification:5005
     ports:
       - "8082:8082"
 
@@ -66,6 +69,7 @@ services:
       PAYMENT_CALLBACK_URL: http://localhost:8083/payment/webhook/payhere
       PAYMENT_RETURN_URL: http://localhost:3000/checkout/success
       PAYMENT_CANCEL_URL: http://localhost:3000/checkout/cancel
+      INTERNAL_API_KEY: dev-internal-key
       NOTIFICATION_SERVICE_URL: http://notification:5005
       INVENTORY_SERVICE_URL: http://inventory:8082
     ports:
@@ -90,6 +94,7 @@ services:
       AUTHENTICATION_SERVICE_URL: http://authentication:8081
       INVENTORY_SERVICE_URL: http://inventory:8082
       PAYMENT_SERVICE_URL: http://payment:8083
+      INTERNAL_API_KEY: dev-internal-key
     ports:
       - "8084:5005"
 

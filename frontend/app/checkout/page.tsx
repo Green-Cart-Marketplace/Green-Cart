@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, CreditCard, Loader2, MapPin, ReceiptText } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { apiGetCart, type Cart } from "@/lib/cart-api";
-import { apiInitiatePayment, submitPayHereForm } from "@/lib/payment";
+import { apiCreateOrder } from "@/lib/order-api";
 import styles from "./checkout.module.css";
 
 type Step = 1 | 2 | 3;
@@ -14,21 +14,17 @@ type Step = 1 | 2 | 3;
 const STEP_LABELS: Record<Step, string> = {
   1: "Delivery",
   2: "Review",
-  3: "Payment"
+  3: "Place Order"
 };
 
 function getStepTitle(step: Step): string {
   const map: Record<Step, string> = {
     1: "Delivery Info",
     2: "Review Items",
-    3: "Payment"
+    3: "Place Order"
   };
 
   return map[step];
-}
-
-function getReturnUrl(): string {
-  return `${globalThis.location?.origin ?? "http://localhost:3000"}/checkout/success`;
 }
 
 function getDeliveryPreview(address: string, city: string): string {
@@ -176,26 +172,11 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      const orderId = `ORD-${Date.now()}`;
-      const response = await apiInitiatePayment({
-        orderId,
-        customerId: user._id,
-        amount: cart.totalPrice,
-        currency: "LKR",
-        returnUrl: getReturnUrl(),
-        items: cart.items.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price
-        }))
-      });
-
-      localStorage.setItem("gc_last_txn_id", response.transactionId);
-      localStorage.setItem("gc_last_order_id", orderId);
-      localStorage.setItem("gc_buy_again_items", JSON.stringify(cart.items.map((item) => item.name)));
-      submitPayHereForm(response.checkoutUrl, response.paymentPayload);
+      const order = await apiCreateOrder();
+      localStorage.setItem("gc_last_order_id", order.orderId);
+      router.push("/customer/orders");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to initiate payment.");
+      setError(err instanceof Error ? err.message : "Failed to place order.");
       setSubmitting(false);
     }
   };
@@ -265,7 +246,7 @@ export default function CheckoutPage() {
                 ) : (
                   <button className="btn btn-primary" onClick={handlePay} disabled={submitting}>
                     {submitting ? <Loader2 size={15} className={styles.spin} /> : <CreditCard size={15} />}
-                    {submitting ? "Redirecting..." : "Pay with PayHere"}
+                    {submitting ? "Placing..." : "Place Order"}
                   </button>
                 )}
               </div>

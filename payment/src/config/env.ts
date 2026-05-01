@@ -18,6 +18,7 @@ const envSchema = z.object({
     PAYMENT_CANCEL_URL: z.string().url().default("http://localhost:3000/checkout/cancel"),
     INTERNAL_API_KEY: z.string().default(""),
     NOTIFICATION_SERVICE_URL: z.string().url().default("http://localhost:8084"),
+    INVENTORY_SERVICE_URL: z.string().url().default("http://localhost:8082"),
 });
 
 function parseEnv() {

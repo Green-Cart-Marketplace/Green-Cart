@@ -5,7 +5,10 @@ export type NotificationEventType =
     | "ITEM_UPDATED"
     | "ITEM_DELETED"
     | "CART_ITEM_ADDED"
-    | "CART_ITEM_REMOVED";
+    | "CART_ITEM_REMOVED"
+    | "ORDER_CREATED"
+    | "ORDER_ACCEPTED"
+    | "ORDER_REJECTED";
 
 export async function emitNotificationEvent(eventType: NotificationEventType, data: Record<string, unknown>): Promise<void> {
     if (!env.INTERNAL_API_KEY) {

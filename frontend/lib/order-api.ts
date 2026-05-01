@@ -17,7 +17,7 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   currency: string;
-  status: "pending" | "paid" | "failed" | "cancelled" | "shipped" | "delivered";
+  status: "pending" | "accepted" | "rejected" | "paid" | "failed" | "cancelled" | "shipped" | "delivered";
   transactionId?: string;
   payHereId?: string;
   notes?: string;

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useSearchParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, CreditCard, Package, RefreshCw, Search, Wallet } from "lucide-react";
 import {
   apiGetPaymentStatus,
@@ -18,6 +19,7 @@ function buildOrderId(): string {
 
 export default function CustomerPaymentsPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
 
   const [amountLkr, setAmountLkr] = useState("1500");
   const [orderId, setOrderId] = useState(buildOrderId());
@@ -35,6 +37,24 @@ export default function CustomerPaymentsPage() {
 
   const platformFeeLkr = 0;
   const totalLkr = useMemo(() => Number((amountInLkr + platformFeeLkr).toFixed(2)), [amountInLkr]);
+
+  const lockedFromOrder = useMemo(() => {
+    const qpOrderId = searchParams.get("orderId");
+    const qpAmount = searchParams.get("amount");
+    return Boolean(qpOrderId && qpAmount);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const qpOrderId = searchParams.get("orderId");
+    const qpAmount = searchParams.get("amount");
+
+    if (qpOrderId) {
+      setOrderId(qpOrderId);
+    }
+    if (qpAmount) {
+      setAmountLkr(qpAmount);
+    }
+  }, [searchParams]);
 
   async function handleStartPayment(): Promise<void> {
     if (!user) return;
@@ -95,6 +115,7 @@ export default function CustomerPaymentsPage() {
   }
 
   function resetDraft(): void {
+    if (lockedFromOrder) return;
     setOrderId(buildOrderId());
     setPaymentInit(null);
     setPaymentStatus(null);
@@ -164,6 +185,7 @@ export default function CustomerPaymentsPage() {
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 placeholder="GC-1234567890"
+                disabled={lockedFromOrder}
               />
             </div>
 
@@ -180,6 +202,7 @@ export default function CustomerPaymentsPage() {
                 value={amountLkr}
                 onChange={(e) => setAmountLkr(e.target.value)}
                 placeholder="1500.00"
+                disabled={lockedFromOrder}
               />
             </div>
           </div>

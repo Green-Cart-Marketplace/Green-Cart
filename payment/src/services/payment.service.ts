@@ -9,6 +9,7 @@ import {
 } from "../utils/payhere.js";
 import { getEnvOrThrow } from "../config/env.js";
 import { emitNotificationEvent } from "./notificationEvents.service.js";
+import { inventoryClientService } from "./inventoryClient.service.js";
 
 interface PayHereCheckoutPayload {
     merchant_id: string;
@@ -45,6 +46,21 @@ export class PaymentService {
         // Verify customer ID matches JWT token (ownership)
         if (customerId !== input.customerId) {
             throw new AppError("Customer ID mismatch", 403, "FORBIDDEN");
+        }
+
+        // Best-effort: validate order exists + belongs to customer + has been accepted by admin
+        try {
+            const order = await inventoryClientService.getOrderInternal(input.orderId);
+            if (order.customerId !== customerId) {
+                throw new AppError("Order does not belong to this customer", 403, "FORBIDDEN");
+            }
+            if (order.status !== "accepted") {
+                throw new AppError("Order is not accepted yet", 400, "ORDER_NOT_ACCEPTED");
+            }
+        } catch (err) {
+            // If inventory is unreachable/misconfigured, allow legacy flow.
+            // If we raised an AppError due to business rules, enforce it.
+            if (err instanceof AppError) throw err;
         }
 
         // Check for idempotency — prevent duplicate payments for same order
@@ -235,6 +251,20 @@ export class PaymentService {
         }
 
         await transaction.save();
+
+        // Best-effort: propagate paid/failed status to inventory order
+        if (newStatus === "completed" || newStatus === "failed") {
+            try {
+                await inventoryClientService.updateOrderPaymentInternal({
+                    orderId: transaction.orderId,
+                    status: newStatus === "completed" ? "paid" : "failed",
+                    transactionId: transaction.transactionId,
+                    payHereId: payload.payment_id,
+                });
+            } catch (err) {
+                console.error("Failed to sync payment status to inventory:", err);
+            }
+        }
 
         // Best-effort: notify admin on every transaction status change
         void emitNotificationEvent("PAYMENT_STATUS_CHANGED", {

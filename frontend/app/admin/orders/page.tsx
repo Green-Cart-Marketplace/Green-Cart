@@ -9,13 +9,12 @@ type BoardColumn = "pending" | "picking" | "out" | "completed";
 
 function toBoardColumn(status: Order["status"]): BoardColumn {
   if (status === "pending") return "pending";
-  if (status === "paid") return "picking";
-  if (status === "shipped") return "out";
+  if (status === "accepted") return "picking";
+  if (status === "paid" || status === "shipped") return "out";
   return "completed";
 }
 
 function nextStatus(status: Order["status"]): Order["status"] | null {
-  if (status === "pending") return "paid";
   if (status === "paid") return "shipped";
   if (status === "shipped") return "delivered";
   return null;
@@ -58,10 +57,7 @@ export default function AdminOrdersPage() {
     return initial;
   }, [orders]);
 
-  const advanceOrder = async (order: Order) => {
-    const target = nextStatus(order.status);
-    if (!target) return;
-
+  const updateStatus = async (order: Order, target: Order["status"]) => {
     setBusyId(order.orderId);
     setError(null);
 
@@ -75,11 +71,17 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const advanceOrder = async (order: Order) => {
+    const target = nextStatus(order.status);
+    if (!target) return;
+    await updateStatus(order, target);
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1>Orders Command Center</h1>
-        <p>Kanban view for fulfillment flow: Pending → Picking → Out for Delivery → Completed</p>
+        <p>Pending orders can be accepted/rejected. Paid orders can be shipped and delivered.</p>
       </div>
 
       {error ? <div className="alert alert-error">{error}</div> : null}
@@ -95,31 +97,34 @@ export default function AdminOrdersPage() {
                 <p className={styles.id}>{order.orderId}</p>
                 <p>Rs. {order.totalAmount.toFixed(2)}</p>
                 <small>{new Date(order.createdAt).toLocaleString()}</small>
-                <button
-                  className="btn btn-sm btn-primary"
-                  onClick={() => advanceOrder(order)}
-                  disabled={busyId === order.orderId}
-                >
-                  Move to Picking
-                </button>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={() => updateStatus(order, "accepted")}
+                    disabled={busyId === order.orderId}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => updateStatus(order, "rejected")}
+                    disabled={busyId === order.orderId}
+                  >
+                    Reject
+                  </button>
+                </div>
               </article>
             ))}
           </section>
 
           <section className={styles.column}>
-            <h2>Picking ({board.picking.length})</h2>
+            <h2>accepted ({board.picking.length})</h2>
             {board.picking.map((order) => (
               <article key={order.orderId} className={styles.card}>
                 <p className={styles.id}>{order.orderId}</p>
                 <p>Rs. {order.totalAmount.toFixed(2)}</p>
                 <small>{order.items.length} items</small>
-                <button
-                  className="btn btn-sm btn-primary"
-                  onClick={() => advanceOrder(order)}
-                  disabled={busyId === order.orderId}
-                >
-                  Move to Out for Delivery
-                </button>
+                <span style={{ color: "var(--ink-subtle)", fontSize: "0.9rem" }}>Awaiting customer payment</span>
               </article>
             ))}
           </section>
@@ -136,7 +141,7 @@ export default function AdminOrdersPage() {
                   onClick={() => advanceOrder(order)}
                   disabled={busyId === order.orderId}
                 >
-                  Mark Completed
+                  {order.status === "paid" ? "Mark Shipped" : "Mark Delivered"}
                 </button>
               </article>
             ))}
