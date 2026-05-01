@@ -9,6 +9,10 @@ Green-Cart is a production-grade, microservice-based e-commerce platform develop
 
 The system follows a microservices architecture with a centralized API Gateway that routes traffic to specialized backend services. All services are containerized and deployed on **Azure Container Apps**.
 
+## 🌐 Production URLs
+- **Storefront (Frontend):** `https://greencartmarket.labs.furo.lk`
+- **API Gateway:** `https://greencartmarket.labs.furo.lk/api`
+
 ```mermaid
 graph TD
     Client[Browser/Mobile] --> Gateway[API Gateway :8080]
@@ -91,6 +95,7 @@ npm run dev
 The backend is deployed to **Azure Container Apps** within the `greencart-env` environment.
 - **Resource Group:** `greencart-rg`
 - **Networking:** Internal FQDN resolution for service-to-service calls (e.g., `http://greencart-notification`).
+- **Custom Domain:** The frontend and API gateway are accessible via `greencartmarket.labs.furo.lk` with properly configured CORS policies.
 
 ### CI/CD Pipelines
 Automated deployment is handled via **GitHub Actions**:
