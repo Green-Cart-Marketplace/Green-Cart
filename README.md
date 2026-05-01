@@ -1,119 +1,122 @@
-# Green-Cart
+# Green-Cart: Microservices E-Commerce Platform
 
-## CTSE 2026 Microservices E-Commerce Platform
+[![SonarCloud Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=Green-Cart-Marketplace_Green-Cart&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Green-Cart-Marketplace_Green-Cart)
+[![CI/CD Status](https://github.com/Green-Cart-Marketplace/Green-Cart/actions/workflows/sonarcloud-ci.yml/badge.svg)](https://github.com/Green-Cart-Marketplace/Green-Cart/actions)
 
-Green-Cart is a university assignment prototype for **Current Trends in Software Engineering (CTSE)** at **SLIIT**. It demonstrates a secure, microservice-based architecture with independent deployment, containerization, and CI/CD automation.
+Green-Cart is a production-grade, microservice-based e-commerce platform developed as a prototype for the **Current Trends in Software Engineering (CTSE)** assignment at **SLIIT**. It showcases modern architectural patterns, including independent service deployability, containerization, and automated DevSecOps pipelines.
 
-## Scope
+## 🏗️ Architecture Overview
 
-- Architecture: microservices with clear service boundaries
-- Delivery model: independently deployable services
-- DevOps: GitHub Actions-based CI/CD
-- DevSecOps: SAST scanning and IAM least-privilege principles
-- Cloud target: GCP-first deployment path (portable to AWS/Azure)
+The system follows a microservices architecture with a centralized API Gateway that routes traffic to specialized backend services. All services are containerized and deployed on **Azure Container Apps**.
 
-## Services
-
-- `authentication/`: user registration, login, token validation
-- `inventory/`: product CRUD (add/update/delete/list/get by id) and stock operations
-- `payment/`: payment initiation and transaction handling
-- `notification/`: event notifications (email/SMS/push)
-- `frontend/`: Next.js storefront UI for customer-facing flows
-
-Each service contains its own `Dockerfile` and `api-docs/` so it can be built and deployed independently. CI workflows are centralized under the repository root `.github/workflows/`.
-
-## Shared Assets
-
-- `shared/architecture/`: architecture diagrams
-- `shared/docs/`: shared technical and project documentation
-
-## Repository Layout
-
-```text
-Green-Cart/
-|-- .github/
-|   \-- workflows/
-|-- authentication/
-|-- inventory/
-|-- payment/
-|-- notification/
-|-- frontend/
-|-- shared/
-|   |-- architecture/
-|   \-- docs/
-|-- implementation_plan.md
-|-- setup_microservices_structure.sh
-\-- README.md
+```mermaid
+graph TD
+    Client[Browser/Mobile] --> Gateway[API Gateway :8080]
+    
+    subgraph "Backend Services (Azure Container Apps)"
+        Gateway --> Auth[Auth Service :8081]
+        Gateway --> Inv[Inventory Service :8082]
+        Gateway --> Pay[Payment Service :8083]
+        Gateway --> Notif[Notification Service :8084]
+    end
+    
+    subgraph "External Integrations"
+        Pay --> PayHere[PayHere API]
+        Notif --> Twilio[Twilio SMS]
+        Notif --> SMTP[Gmail SMTP]
+    end
+    
+    subgraph "Data Store"
+        Auth --> Mongo[(MongoDB Atlas)]
+        Inv --> Mongo
+        Pay --> Mongo
+        Notif --> Mongo
+    end
 ```
 
-## Project Documents
+## 📦 Services Breakdown
 
-- Implementation roadmap: `implementation_plan.md`
-- Shared architecture output location: `shared/architecture/`
-- Shared report notes and cross-service docs: `shared/docs/`
+| Service | Description | Port | Tech Stack |
+|:---|:---|:---|:---|
+| **API Gateway** | Entry point for all external requests. Handles proxying and global middleware. | 8080 | Node.js, Express |
+| **Authentication** | User management, JWT-based login/registration, and token validation. | 8081 | Node.js, Mongoose, JWT |
+| **Inventory** | Product CRUD, stock management, shopping cart, and order processing. | 8082 | Node.js, Mongoose |
+| **Payment** | Payment initiation, PayHere integration, and transaction status tracking. | 8083 | Node.js, PayHere SDK |
+| **Notification** | Multi-channel notifications (In-app, SMS via Twilio, Email via SMTP). | 8084 | Node.js, Nodemailer, Twilio |
+| **Frontend** | Responsive storefront UI for customer shopping experiences. | 3000 | Next.js, TypeScript |
 
-## Quick Start
+## 🔐 Security and Communication
 
-1. Clone the repository.
-2. Use `frontend/.env.example` as a template and create `frontend/.env.local`.
-3. Implement APIs and OpenAPI specs in each `api-docs/` folder.
-4. Build and run each service using its own `Dockerfile`.
-5. Run frontend locally with `npm --prefix frontend run dev`.
-6. Enable CI/CD workflows and deploy services independently.
+### External Security
+- **JWT Authentication:** All protected routes require a valid JSON Web Token issued by the Authentication service.
+- **CORS:** Restrictive CORS policies are enforced to allow only authorized origins (e.g., the production frontend).
 
-## Run All Services With Docker Compose
+### Internal Communication
+To ensure that internal administrative actions (like triggering notifications from the payment service) are secure, the platform uses an **Internal API Key** mechanism.
+- Services must include an `x-internal-api-key` header for inter-service HTTP calls.
+- This key is shared across the environment and prevents unauthorized external access to internal endpoints.
 
-From the repository root, you can build and run the full local stack (MongoDB, all backend services, API Gateway, and frontend) with:
+## 🚀 Getting Started
+
+### Prerequisites
+- [Node.js 20+](https://nodejs.org/)
+- [Docker & Docker Compose](https://www.docker.com/)
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) (for deployment)
+
+### Local Development (Docker Compose)
+The easiest way to run the entire stack locally:
 
 ```bash
+# Clone the repository
+git clone https://github.com/Green-Cart-Marketplace/Green-Cart.git
+cd Green-Cart
+
+# Start all services
 docker compose up --build
 ```
 
-Run in detached mode:
+Access the storefront at `http://localhost:3000`.
 
+### Manual Service Start
+If you prefer running a single service:
 ```bash
-docker compose up --build -d
+cd <service_directory>
+npm install
+npm run dev
 ```
 
-Stop everything:
+## ☁️ Deployment
 
+### Infrastructure (Azure)
+The backend is deployed to **Azure Container Apps** within the `greencart-env` environment.
+- **Resource Group:** `greencart-rg`
+- **Networking:** Internal FQDN resolution for service-to-service calls (e.g., `http://greencart-notification`).
+
+### CI/CD Pipelines
+Automated deployment is handled via **GitHub Actions**:
+- `sonarcloud-ci.yml`: Performs SAST scanning and quality gate checks.
+- `<service>-cd.yml`: Builds Docker images and deploys them to Azure upon merges to `main`.
+
+### Post-Deployment Fixes
+If notifications are not triggering in the deployed environment, ensure the `INTERNAL_API_KEY` and `NOTIFICATION_SERVICE_URL` are correctly set in the Azure portal or run the provided fix script:
 ```bash
-docker compose down
+bash scripts/fix-azure-notification-env.sh
 ```
 
-Useful endpoints after startup:
+## 📂 Repository Structure
+```text
+Green-Cart/
+├── .github/workflows/    # CI/CD pipeline definitions
+├── api-gateway/          # Custom Node.js API Gateway
+├── authentication/       # Identity & Access Management service
+├── frontend/             # Next.js Storefront application
+├── inventory/            # Catalog, Cart, and Order service
+├── notification/         # Event-driven notification service
+├── payment/              # Transaction & Payment processing service
+├── scripts/              # Deployment and utility scripts
+├── shared/               # Architecture diagrams and shared API specs
+└── docker-compose.yml    # Local multi-container orchestration
+```
 
-- Frontend: `http://localhost:3000`
-- API Gateway: `http://localhost:8080`
-- Authentication: `http://localhost:8081/health`
-- Inventory: `http://localhost:8082/health`
-- Payment: `http://localhost:8083/health`
-- Notification: `http://localhost:8084/health`
-
-## Frontend Deployment (Vercel)
-
-1. Import this repository into Vercel.
-2. Set the Vercel project Root Directory to `frontend`.
-3. Keep defaults from `frontend/vercel.json` for install/build/dev commands.
-4. Configure the Vercel environment variable for the API gateway URL:
-   - `NEXT_PUBLIC_API_GATEWAY_URL`
-5. Deploy backend services to GCP Cloud Run and expose them through GCP API Gateway.
-
-## API Gateway Deployment (GitHub Actions)
-1. Define the API Gateway OpenAPI spec in `shared/api-docs/gateway-openapi.yaml` with correct backend URLs.
-2. Set up the GitHub Actions workflow for API Gateway deployment in `.github/workflows/api-gateway-deploy.yml` with necessary repository variables and secrets for GCP authentication.
-3. Trigger the workflow to deploy the API Gateway configuration to GCP. 
-
-- Gateway OpenAPI contract: `shared/api-docs/gateway-openapi.yaml`
-- Rollout guide: `shared/docs/api-gateway-rollout.md`
-- Automated gateway deployment workflow: `.github/workflows/api-gateway-deploy.yml`
-
-Set these repository variables for the workflow:
-- `GCP_PROJECT_ID`
-- `GCP_REGION`
-- `GCP_API_GATEWAY_API_ID`
-- `GCP_API_GATEWAY_ID`
-
-Set these repository secrets for OIDC authentication:
-- `GCP_WORKLOAD_IDENTITY_PROVIDER`
-- `GCP_DEPLOYER_SERVICE_ACCOUNT`
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
