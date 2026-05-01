@@ -27,6 +27,7 @@ export default function WishlistPage() {
     try {
       await addToCart(itemId, 1);
       alert(`${itemName} added to cart!`);
+      await removeFromWishlist(itemId);
     } catch {
       alert("Failed to add to cart");
     }
