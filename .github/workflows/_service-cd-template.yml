@@ -51,7 +51,6 @@ jobs:
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
         with:
-          appSourcePath: ${{ github.workspace }}/${{ inputs.service_name }}
           acrName: ${{ secrets.AZURE_REGISTRY_USERNAME }}
           acrUsername: ${{ secrets.AZURE_REGISTRY_USERNAME }}
           acrPassword: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
