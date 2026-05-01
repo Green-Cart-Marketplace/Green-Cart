@@ -7,6 +7,7 @@ import { errorHandler } from "./middleware/errorHandler";
 
 export function createApp() {
     const app = express();
+    app.set("trust proxy", 1);
 
     // CORS
     const allowedOrigins = env.CORS_ORIGINS.split(",").map((o) => o.trim());

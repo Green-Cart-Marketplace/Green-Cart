@@ -9,6 +9,7 @@ import internalEventRoutes from "./routes/events.js";
 import { notificationRateLimiter } from "./middleware/rateLimiter.js";
 
 export const app = express();
+app.set("trust proxy", 1);
 
 const allowedOrigins = new Set(
   env.CORS_ORIGINS.split(",")

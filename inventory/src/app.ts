@@ -11,6 +11,7 @@ import orderRouter from "./routes/order";
 
 export function createApp() {
     const app = express();
+    app.set("trust proxy", 1);
 
     const allowedOrigins = env.CORS_ORIGINS.split(",").map((o) => o.trim());
     app.use(
