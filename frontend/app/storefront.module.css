@@ -181,7 +181,7 @@
   overflow: hidden;
   min-height: 220px;
   background:
-    linear-gradient(120deg, rgba(13, 46, 30, 0.72), rgba(27, 87, 58, 0.55)),
+    linear-gradient(120deg, rgba(13, 46, 30, 0.72), rgba(87, 27, 27, 0.55)),
     radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.25), transparent 45%),
     linear-gradient(140deg, #82c99b, #5fb67f 42%, #2e8f5d 100%);
   border: 1px solid #cde5d4;
