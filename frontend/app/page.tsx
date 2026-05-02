@@ -35,7 +35,7 @@ export default async function Home() {
       <section className={styles.heroCommerce}>
         <div className={styles.heroCommerceCopy}>
           <p className={styles.kicker}>Fresh Deals Live Now</p>
-          <h1>High-quality groceries delivered fast, with a visual-first shopping experience.</h1>
+          <h1>new changes as requested</h1>
           <p>
             Shop produce, pantry items, and home essentials through curated collections,
             smart product search, and a checkout flow designed for conversion.
