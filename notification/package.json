@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
-    "body-parser": "1.20.3",
+    "body-parser": "2.2.2",
     "cors": "2.8.6",
     "dotenv": "^17.3.1",
     "express": "4.19.2",
